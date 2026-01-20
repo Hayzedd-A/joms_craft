@@ -1,0 +1,157 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { Header } from '@/components/Header';
+import { CategoryTabs } from '@/components/CategoryTabs';
+import { ItemCard } from '@/components/ItemCard';
+import { ItemModal } from '@/components/ItemModal';
+import { useAnonymousUser, useFavourites } from '@/hooks/useAnonymousUser';
+
+interface CatalogClientProps {
+  items: Array<{
+    _id: string;
+    name: string;
+    description: string;
+    price: number;
+    images: string[];
+    category: string;
+  }>;
+  categories: string[];
+}
+
+export default function CatalogClient({ items: initialItems, categories: initialCategories }: CatalogClientProps) {
+  const [items, setItems] = useState(initialItems);
+  const [categories, setCategories] = useState(initialCategories);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedItem, setSelectedItem] = useState<typeof initialItems[0] | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const userId = useAnonymousUser();
+  const { favourites, toggleFavourite } = useFavourites(userId);
+
+  const businessName = process.env.NEXT_PUBLIC_BUSINESS_NAME || 'My Catalog';
+  const whatsappNumber = process.env.WHATSAPP_NUMBER || '1234567890';
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [itemsRes, categoriesRes] = await Promise.all([
+          fetch('/api/items'),
+          fetch('/api/categories'),
+        ]);
+        
+        if (itemsRes.ok) {
+          const data = await itemsRes.json();
+          setItems(data.items);
+        }
+        if (categoriesRes.ok) {
+          const data = await categoriesRes.json();
+          setCategories(data.categories);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const filteredItems = useMemo(() => {
+    let filtered = items;
+
+    // Filter by category
+    if (activeCategory !== 'all') {
+      filtered = filtered.filter(item => item.category === activeCategory);
+    }
+
+    // Filter by search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.name.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [items, activeCategory, searchQuery]);
+
+  const handleItemClick = (item: typeof items[0]) => {
+    setSelectedItem(item);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedItem(null);
+  };
+
+  const handleFavouriteToggle = async (itemId: string) => {
+    await toggleFavourite(itemId);
+  };
+
+  const handleWhatsApp = (item: typeof items[0]) => {
+    const message = `Hi, I found interest in this item: ${item.name}\n${item.images[0] || ''}`;
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Header
+        businessName={businessName}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onFavouritesClick={() => {
+          // Show user's favourites or filter items
+          setSearchQuery('favorites:');
+        }}
+      />
+
+      <CategoryTabs
+        categories={categories}
+        activeCategory={activeCategory}
+        onCategoryChange={setActiveCategory}
+      />
+
+      <main className="px-4 py-6">
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400">
+              {searchQuery ? 'No items found' : 'No items available'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredItems.map((item) => (
+              <ItemCard
+                key={item._id}
+                item={item}
+                isFavourite={favourites.has(item._id)}
+                onFavouriteToggle={handleFavouriteToggle}
+                onWhatsApp={handleWhatsApp}
+                onClick={handleItemClick}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+
+      <ItemModal
+        item={selectedItem}
+        isOpen={isModalOpen}
+        isFavourite={selectedItem ? favourites.has(selectedItem._id) : false}
+        onClose={handleCloseModal}
+        onFavouriteToggle={handleFavouriteToggle}
+        onWhatsApp={handleWhatsApp}
+      />
+    </div>
+  );
+}
+

@@ -1,0 +1,131 @@
+Build a simple, intuitive digital catalog / price list web app designed for small businesses (e.g. food vendors, service providers).
+The goal is to clearly display items and prices and allow users to quickly interact without creating accounts.
+
+Core Requirements (MVP)
+General
+
+The app should be mobile-first, responsive, and fast.
+
+No user authentication is required for customers.
+
+Each visitor should be automatically assigned a unique anonymous user ID, stored in localStorage if it does not already exist.
+
+Landing Page
+
+Display:
+
+Brand name / business name
+
+A grid view of all available items
+
+Items should be grouped by categories
+
+Provide a tab-based navigation to switch between categories
+
+Include a search bar:
+
+Search should work across all categories
+
+If a result is outside the current category, indicate the category name in the result
+
+Item Card
+
+Each item card should display:
+
+Image
+
+Name
+
+Price
+
+Two actions:
+
+Add to Favourite
+
+Send to Chat (WhatsApp)
+
+Item Detail View
+
+Clicking an item opens a modal
+
+Modal should show:
+
+Full description
+
+Price
+
+Multiple images (if available)
+
+Same action buttons
+
+Favourite System:
+
+When a user clicks “Add to Favourite”:
+
+Save the item ID to the user’s localStorage
+
+Persist the favourite in the database using:
+
+item ID
+
+anonymous user ID
+
+This data will later be used for business insights
+
+WhatsApp Integration
+
+“Send to Chat” should open WhatsApp using Click-to-Chat
+
+Use a pre-filled message template:
+
+Hi, I found interest in this item: {{item_name}}
+{{item_image}}
+
+
+Send to a predefined company WhatsApp number stored in environment variables
+
+Admin Section
+
+Admin access should be protected using credentials stored in environment variables
+
+Admin capabilities:
+
+Add items
+
+Update items
+
+Delete items
+
+Upload images
+
+Admin should also have a Favourites Insight Page:
+
+View favourited items
+
+Group favourites by anonymous user ID
+
+Show count of favourites per item
+
+Tech Stack Constraints:
+
+MongoDB for database
+
+Cloudinary for image uploads
+
+Environment variables for:
+
+Admin username
+
+Admin password
+
+WhatsApp number
+
+No third-party authentication required
+
+Design Philosophy
+
+Prioritize clarity over complexity
+
+Avoid unnecessary features
+
+Each screen should solve one clear problem
