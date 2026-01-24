@@ -4,6 +4,7 @@ export interface IItem extends Document {
   name: string;
   description: string;
   price: number;
+  slug: string;
   images: string[];
   category: string;
   createdAt: Date;
@@ -13,8 +14,9 @@ export interface IItem extends Document {
 const ItemSchema = new Schema<IItem>(
   {
     name: { type: String, required: true },
-    description: { type: String, required: true },
+    description: { type: String, default: '' },
     price: { type: Number, required: true },
+    slug: { type: String, required: true, unique: true },
     images: [{ type: String }],
     category: { type: String, required: true },
   },

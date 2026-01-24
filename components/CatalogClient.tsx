@@ -6,12 +6,14 @@ import { CategoryTabs } from "@/components/CategoryTabs";
 import { ItemCard } from "@/components/ItemCard";
 import { ItemModal } from "@/components/ItemModal";
 import { useAnonymousUser, useFavourites } from "@/hooks/useAnonymousUser";
+import { getShareUrl } from "@/lib/util";
 
 export interface IItem {
   _id: string;
   name: string;
   description: string;
   price: number;
+  slug: string;
   images: string[];
   category: string;
   createdAt: Date;
@@ -107,7 +109,7 @@ export default function CatalogClient({
   };
 
   const handleWhatsApp = (item: IItem) => {
-    const message = `Hi, I found interest in this item: ${item.name}\n\n${item.images[0] || ""}`;
+    const message = `Hi, I found interest in this item: ${item.name}\n\n${getShareUrl(item.slug) || ""}`;
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
   };

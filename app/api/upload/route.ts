@@ -10,18 +10,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
     let Urls = [];
+    const base64Array = [];
     for (const file of files) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
       const base64 = `data:${file.type};base64,${buffer.toString("base64")}`;
-
-      const result = await uploadImage(base64);
-      if (!result.success) {
-
-        continue
-      }
-      Urls.push({ url: result.url });
+      base64Array.push(base64);
     }
+
+    const result = await Promise.all(
+      base64Array.map((base64) => uploadImage(base64)),
+    );
+    Urls = result.filter(res => res.success).map((url) => ({url: url.url}));
 
     return NextResponse.json({ data: Urls }, { status: 200 });
   } catch (error) {

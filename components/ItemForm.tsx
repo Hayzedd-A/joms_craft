@@ -99,7 +99,7 @@ export function ItemForm({
       await onSubmit({
         ...formData,
         images: uploadedUrls,
-        category: newCategory || formData.category,
+        category: newCategory || formData.category || "all",
       });
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -188,7 +188,6 @@ export function ItemForm({
           }
           rows={4}
           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
         />
       </div>
 
@@ -224,6 +223,7 @@ export function ItemForm({
             }
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
+            <option value="all">All</option>
             {categories.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
@@ -241,7 +241,7 @@ export function ItemForm({
           </label>
           <input
             type="text"
-            value={newCategory}
+            value={newCategory || ""}
             onChange={(e) => setNewCategory(e.target.value)}
             placeholder="Enter category name"
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
