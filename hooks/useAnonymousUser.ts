@@ -1,12 +1,14 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 
-export function useAnonymousUser() {
-  const [userId, setUserId] = useState<string>('');
-
-  const initializeUser = useCallback(() => {
+function getAnonymousUserId(): string {
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  
+  try {
     let storedId = localStorage.getItem('anonymousUserId');
     
     if (!storedId) {
@@ -14,14 +16,25 @@ export function useAnonymousUser() {
       localStorage.setItem('anonymousUserId', storedId);
     }
 
-    setUserId(storedId);
-  }, []);
+    return storedId;
+  } catch (error) {
+    console.error('Error accessing localStorage:', error);
+    return '';
+  }
+}
+
+export function useAnonymousUser() {
+  const [userId, setUserId] = useState<string>('');
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    initializeUser();
-  }, [initializeUser]);
+    const id = getAnonymousUserId();
+    setUserId(id);
+    setIsInitialized(true);
+  }, []);
 
-  return userId;
+  // Return memoized userId that doesn't change after initialization
+  return useMemo(() => userId, [userId]);
 }
 
 interface FavouriteItem {

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { AdminLayout } from '@/components/AdminLayout';
 import { ItemForm } from '@/components/ItemForm';
-import { Plus, Edit, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, Image as ImageIcon, Share2, Copy, Check } from 'lucide-react';
 
 interface Item {
   _id: string;
@@ -27,6 +27,8 @@ export default function AdminItemsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showShareMenu, setShowShareMenu] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -112,6 +114,67 @@ export default function AdminItemsPage() {
   const handleCancel = () => {
     setShowForm(false);
     setEditingItem(null);
+  };
+
+  const getShareUrl = (itemId: string) => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${baseUrl}/?item=${itemId}`;
+  };
+
+  const handleCopyLink = async (item: Item) => {
+    const url = getShareUrl(item._id);
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(item._id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
+    }
+    setShowShareMenu(null);
+  };
+
+  const handleShare = (platform: 'twitter' | 'facebook' | 'whatsapp', item: Item) => {
+    const url = getShareUrl(item._id);
+    const text = `Check out this item: ${item.name} - ₦${item.price.toLocaleString()}`;
+    const encodedUrl = encodeURIComponent(url);
+    const encodedText = encodeURIComponent(text);
+
+    let shareUrl = '';
+    switch (platform) {
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+        break;
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodedText}%20${encodedUrl}`;
+        break;
+    }
+
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+    setShowShareMenu(null);
+  };
+
+  const handleNativeShare = async (item: Item) => {
+    const url = getShareUrl(item._id);
+    const text = `Check out this item: ${item.name} - ₦${item.price.toLocaleString()}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: item.name,
+          text: text,
+          url: url,
+        });
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      setShowShareMenu(showShareMenu === item._id ? null : item._id);
+    }
   };
 
   return (
@@ -221,7 +284,53 @@ export default function AdminItemsPage() {
                         </p>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-2 relative">
+                          <button
+                            onClick={() => handleNativeShare(item)}
+                            className="p-2 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
+                            title="Share"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </button>
+                          {showShareMenu === item._id && (
+                            <div className="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-10 min-w-[160px]">
+                              <button
+                                onClick={() => handleShare('whatsapp', item)}
+                                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                              >
+                                <span className="text-green-500">WhatsApp</span>
+                              </button>
+                              <button
+                                onClick={() => handleShare('twitter', item)}
+                                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                              >
+                                <span className="text-blue-400">Twitter</span>
+                              </button>
+                              <button
+                                onClick={() => handleShare('facebook', item)}
+                                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                              >
+                                <span className="text-blue-600">Facebook</span>
+                              </button>
+                              <hr className="my-1 border-gray-200 dark:border-gray-700" />
+                              <button
+                                onClick={() => handleCopyLink(item)}
+                                className="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                              >
+                                {copiedId === item._id ? (
+                                  <>
+                                    <Check className="w-4 h-4 text-green-500" />
+                                    <span className="text-green-500">Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-4 h-4" />
+                                    Copy Link
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
                           <button
                             onClick={() => handleEdit(item)}
                             className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"

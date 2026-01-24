@@ -10,22 +10,15 @@ import {
   ChevronRight,
   DollarSign,
 } from "lucide-react";
-import { Item } from "./CatalogClient";
+import { IItem } from "./CatalogClient";
 
 interface ItemModalProps {
-  item: {
-    _id: string;
-    name: string;
-    description: string;
-    price: number;
-    images: string[];
-    category: string;
-  } | null;
+  item: IItem | null;
   isOpen: boolean;
   isFavourite: boolean;
   onClose: () => void;
   onFavouriteToggle: (itemId: string) => void;
-  onWhatsApp: (item: Item) => void;
+  onWhatsApp: (item: IItem) => void;
 }
 
 export function ItemModal({
@@ -73,6 +66,7 @@ export function ItemModal({
                 src={images[currentImageIndex]}
                 alt={item.name}
                 fill
+                loading="lazy"
                 className="object-cover"
                 sizes="(max-width: 640px) 100vw, 500px"
               />

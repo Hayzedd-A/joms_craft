@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
-import { Upload, X, Plus } from 'lucide-react';
+import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
+import { Upload, X, Plus } from "lucide-react";
 
 interface ItemFormProps {
   initialData?: {
@@ -19,82 +19,136 @@ interface ItemFormProps {
   isLoading?: boolean;
 }
 
-export function ItemForm({ 
-  initialData, 
-  categories, 
-  onSubmit, 
+interface ImagePreview {
+  file: File;
+  previewUrl: string;
+  isNew: boolean;
+}
+
+export function ItemForm({
+  initialData,
+  categories,
+  onSubmit,
   onCancel,
-  isLoading 
+  isLoading,
 }: ItemFormProps) {
   const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    description: initialData?.description || '',
+    name: initialData?.name || "",
+    description: initialData?.description || "",
     price: initialData?.price || 0,
-    category: initialData?.category || categories[0] || '',
+    category: initialData?.category || categories[0] || "",
     images: initialData?.images || [],
   });
-  const [newCategory, setNewCategory] = useState('');
+  const [newCategory, setNewCategory] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [imagePreviews, setImagePreviews] = useState<ImagePreview[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const allCategories = newCategory 
-    ? [...categories, newCategory] 
-    : categories;
+  const allCategories = newCategory ? [...categories, newCategory] : categories;
+
+  // Load existing images from initialData into previews
+  useEffect(() => {
+    if (initialData?.images) {
+      const existingPreviews = initialData.images.map((url, index) => ({
+        file: new File([], `existing_${index}`),
+        previewUrl: url,
+        isNew: false,
+      }));
+      setImagePreviews(existingPreviews);
+    }
+  }, [initialData]);
+
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((preview) => {
+        if (preview.isNew && preview.previewUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(preview.previewUrl);
+        }
+      });
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit({
-      ...formData,
-      category: newCategory || formData.category,
-    });
+    setIsUploading(true);
+
+    try {
+      // Upload new images that haven't been uploaded yet
+      let uploadedUrls: string[] = [];
+
+      console.log("Processing image preview:", imagePreviews);
+      const uploadFormData = new FormData();
+      for (const preview of imagePreviews)
+        uploadFormData.append("file", preview.file);
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      if (response.ok) {
+        const { data } = (await response.json()) as { data: { url: string }[] };
+        uploadedUrls = data.map((item) => item.url);
+        console.log("Uploaded image URLs:", uploadedUrls);
+      } else {
+        throw new Error("Failed to upload image");
+      }
+
+      await onSubmit({
+        ...formData,
+        images: uploadedUrls,
+        category: newCategory || formData.category,
+      });
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Failed to upload images. Please try again.");
+      setIsUploading(false);
+    }
   };
 
-  const handleImageUpload = async (files: FileList | null) => {
+  const handleImageSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    setIsUploading(true);
-    const uploadedUrls: string[] = [];
+    const newPreviews: ImagePreview[] = [];
 
     for (const file of Array.from(files)) {
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', file);
+      if (!file.type.startsWith("image/")) continue;
 
-      try {
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: uploadFormData,
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          uploadedUrls.push(data.url);
-        }
-      } catch (error) {
-        console.error('Upload error:', error);
-      }
+      const previewUrl = URL.createObjectURL(file);
+      newPreviews.push({
+        file,
+        previewUrl,
+        isNew: true,
+      });
     }
 
-    setFormData(prev => ({
-      ...prev,
-      images: [...prev.images, ...uploadedUrls],
-    }));
-    
-    setIsUploading(false);
+    setImagePreviews((prev) => [...prev, ...newPreviews]);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const removeImage = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
+    setImagePreviews((prev) => {
+      const newPreviews = prev.filter((_, i) => i !== index);
+      // Revoke the object URL to avoid memory leaks
+      if (prev[index].isNew && prev[index].previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(prev[index].previewUrl);
+      }
+      return newPreviews;
+    });
   };
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
+    if (e.type === "dragenter" || e.type === "dragover") {
       setDragActive(true);
-    } else if (e.type === 'dragleave') {
+    } else if (e.type === "dragleave") {
       setDragActive(false);
     }
   };
@@ -103,7 +157,7 @@ export function ItemForm({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    handleImageUpload(e.dataTransfer.files);
+    handleImageSelect(e.dataTransfer.files);
   };
 
   return (
@@ -115,7 +169,9 @@ export function ItemForm({
         <input
           type="text"
           value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, name: e.target.value }))
+          }
           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         />
@@ -127,7 +183,9 @@ export function ItemForm({
         </label>
         <textarea
           value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, description: e.target.value }))
+          }
           rows={4}
           className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
@@ -142,7 +200,12 @@ export function ItemForm({
           <input
             type="number"
             value={formData.price}
-            onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+            onChange={(e) =>
+              setFormData((prev) => ({
+                ...prev,
+                price: parseFloat(e.target.value) || 0,
+              }))
+            }
             min={0}
             step={0.01}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -156,18 +219,22 @@ export function ItemForm({
           </label>
           <select
             value={formData.category}
-            onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, category: e.target.value }))
+            }
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
             ))}
             <option value="__new__">+ Add new category</option>
           </select>
         </div>
       </div>
 
-      {formData.category === '__new__' && (
+      {formData.category === "__new__" && (
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             New Category Name
@@ -187,16 +254,16 @@ export function ItemForm({
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Images
         </label>
-        
+
         <div
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
           className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-            dragActive 
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+            dragActive
+              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+              : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
           }`}
         >
           <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
@@ -207,7 +274,8 @@ export function ItemForm({
             type="file"
             accept="image/*"
             multiple
-            onChange={(e) => handleImageUpload(e.target.files)}
+            ref={fileInputRef}
+            onChange={(e) => handleImageSelect(e.target.files)}
             className="hidden"
             id="image-upload"
           />
@@ -224,12 +292,15 @@ export function ItemForm({
           <p className="text-sm text-gray-500 mt-2">Uploading images...</p>
         )}
 
-        {formData.images.length > 0 && (
+        {imagePreviews.length > 0 && (
           <div className="grid grid-cols-3 gap-2 mt-4">
-            {formData.images.map((url, index) => (
-              <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+            {imagePreviews.map((preview, index) => (
+              <div
+                key={index}
+                className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700"
+              >
                 <Image
-                  src={url}
+                  src={preview.previewUrl}
                   alt={`Preview ${index + 1}`}
                   fill
                   className="object-cover"
@@ -261,10 +332,13 @@ export function ItemForm({
           disabled={isLoading}
           className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading ? 'Saving...' : initialData?._id ? 'Update Item' : 'Add Item'}
+          {isLoading
+            ? "Saving..."
+            : initialData?._id
+              ? "Update Item"
+              : "Add Item"}
         </button>
       </div>
     </form>
   );
 }
-

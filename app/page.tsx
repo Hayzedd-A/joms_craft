@@ -5,8 +5,8 @@ import CatalogClient from '@/components/CatalogClient';
 async function getItems() {
   try {
     await connectToDatabase();
-    const items = await Item.find().sort({ createdAt: -1 }).lean();
-    return items;
+    const items = await Item.find().sort({ createdAt: -1 });
+    return items.map(item => ({...item.toObject(), _id: item._id.toString()}));
   } catch (error) {
     console.error('Error fetching items:', error);
     return [];

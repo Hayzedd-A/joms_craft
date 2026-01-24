@@ -2,21 +2,14 @@
 
 import Image from 'next/image';
 import { Heart, MessageCircle, DollarSign } from 'lucide-react';
-import { Item } from './CatalogClient';
+import { IItem } from './CatalogClient';
 
 interface ItemCardProps {
-  item: {
-    _id: string;
-    name: string;
-    description: string;
-    price: number;
-    images: string[];
-    category: string;
-  };
+  item: IItem;
   isFavourite: boolean;
   onFavouriteToggle: (itemId: string) => void;
-  onWhatsApp: (item: Item) => void;
-  onClick: (item: Item) => void;
+  onWhatsApp: (item: IItem) => void;
+  onClick: (item: IItem) => void;
 }
 
 export function ItemCard({ 
@@ -36,6 +29,7 @@ export function ItemCard({
       <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
         {imageUrl ? (
           <Image
+            loading='lazy'
             src={imageUrl}
             alt={item.name}
             fill

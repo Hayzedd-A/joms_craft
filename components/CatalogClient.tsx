@@ -7,17 +7,19 @@ import { ItemCard } from "@/components/ItemCard";
 import { ItemModal } from "@/components/ItemModal";
 import { useAnonymousUser, useFavourites } from "@/hooks/useAnonymousUser";
 
-export interface Item {
+export interface IItem {
   _id: string;
   name: string;
   description: string;
   price: number;
   images: string[];
   category: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface CatalogClientProps {
-  items: Array<Item>;
+  items: Array<IItem>;
   categories: string[];
 }
 
@@ -55,7 +57,7 @@ export default function CatalogClient({
         }
         if (categoriesRes.ok) {
           const data = await categoriesRes.json();
-          setCategories(data.categories);
+          setCategories([...data.categories, "Favourites"]);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -69,8 +71,12 @@ export default function CatalogClient({
     let filtered = items;
 
     // Filter by category
-    if (activeCategory !== "all") {
+    if (activeCategory !== "all" && activeCategory !== "Favourites") {
       filtered = filtered.filter((item) => item.category === activeCategory);
+    }
+
+    if (activeCategory === "Favourites") {
+      filtered = filtered.filter((item) => favourites.has(item._id));
     }
 
     // Filter by search
@@ -86,7 +92,7 @@ export default function CatalogClient({
     return filtered;
   }, [items, activeCategory, searchQuery]);
 
-  const handleItemClick = (item: Item) => {
+  const handleItemClick = (item: IItem) => {
     setSelectedItem(item);
     setIsModalOpen(true);
   };
@@ -100,8 +106,8 @@ export default function CatalogClient({
     await toggleFavourite(itemId);
   };
 
-  const handleWhatsApp = (item: Item) => {
-    const message = `Hi, I found interest in this item: ${item.name}\n${item.images[0] || ""}`;
+  const handleWhatsApp = (item: IItem) => {
+    const message = `Hi, I found interest in this item: ${item.name}\n\n${item.images[0] || ""}`;
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
   };
@@ -114,7 +120,7 @@ export default function CatalogClient({
         onSearchChange={setSearchQuery}
         onFavouritesClick={() => {
           // Show user's favourites or filter items
-          setSearchQuery("favorites:");
+          setActiveCategory("Favourites");
         }}
       />
 
