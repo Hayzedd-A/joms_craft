@@ -45,6 +45,9 @@ export function ItemForm({
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [mediaPreviews, setMediaPreviews] = useState<MediaPreview[]>([]);
+  const [formPrice, setFormPrice] = useState<string>(
+    initialData?.price ? initialData?.price?.toLocaleString() : "0",
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const allCategories = newCategory ? [...categories, newCategory] : categories;
@@ -78,6 +81,12 @@ export function ItemForm({
     setIsUploading(true);
 
     try {
+      const newFormData = {
+        ...formData,
+        price: formPrice
+          ? parseFloat(formPrice.toString().replace(/,/g, ""))
+          : 0,
+      };
       // Upload new media that haven't been uploaded yet
       let uploadedMedia: { url: string; type: "image" | "video" }[] = [];
 
@@ -105,13 +114,13 @@ export function ItemForm({
       }
 
       await onSubmit({
-        ...formData,
+        ...newFormData,
         media: uploadedMedia,
         category: newCategory || formData.category || "all",
       });
     } catch (error: any) {
       console.error("Error submitting form:", error);
-      alert( error.message || "Failed to upload media. Please try again.");
+      alert(error.message || "Failed to upload media. Please try again.");
       setIsUploading(false);
     }
   };
@@ -210,15 +219,17 @@ export function ItemForm({
           </label>
           <input
             type="string"
-            value={formData.price}
+            value={formPrice}
             onChange={(e) => {
-              const valid = !(isNaN(parseFloat(e.target.value)));
-                setFormData((prev) => ({
-                  ...prev,
-                  price: valid ? parseFloat(e.target.value).toLocaleString() as unknown as number : 0,
-                }))
-              }
-            }
+              const valid = !isNaN(parseFloat(e.target.value));
+              setFormPrice(() =>
+                valid
+                  ? (parseFloat(
+                      e.target.value,
+                    ).toLocaleString() as unknown as string)
+                  : "0",
+              );
+            }}
             min={0}
             step={0.01}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
