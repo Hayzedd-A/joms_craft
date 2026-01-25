@@ -7,21 +7,10 @@ import { ItemCard } from "@/components/ItemCard";
 import { ItemModal } from "@/components/ItemModal";
 import { useAnonymousUser, useFavourites } from "@/hooks/useAnonymousUser";
 import { getShareUrl } from "@/lib/util";
-
-export interface IItem {
-  _id: string;
-  name: string;
-  description: string;
-  price: number;
-  slug: string;
-  images: string[];
-  category: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { ItemProps } from "@/app/types";
 
 interface CatalogClientProps {
-  items: Array<IItem>;
+  items: Array<ItemProps>;
   categories: string[];
 }
 
@@ -94,7 +83,7 @@ export default function CatalogClient({
     return filtered;
   }, [items, activeCategory, searchQuery]);
 
-  const handleItemClick = (item: IItem) => {
+  const handleItemClick = (item: ItemProps) => {
     setSelectedItem(item);
     setIsModalOpen(true);
   };
@@ -108,7 +97,7 @@ export default function CatalogClient({
     await toggleFavourite(itemId);
   };
 
-  const handleWhatsApp = (item: IItem) => {
+  const handleWhatsApp = (item: ItemProps) => {
     const message = `Hi, I found interest in this item: ${item.name}\n\n${getShareUrl(item.slug) || ""}`;
     const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");

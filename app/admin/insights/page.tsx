@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { AdminLayout } from '@/components/AdminLayout';
 import { Heart, Users, TrendingUp, DollarSign } from 'lucide-react';
+import MediaPreview from '@/components/MediaPreview';
 
 interface InsightData {
   userFavourites: Record<string, string[]>;
@@ -11,7 +12,7 @@ interface InsightData {
     _id: string;
     name: string;
     price: number;
-    images: string[];
+    media: {type: "image" | "video", url: string}[];
     category: string;
     favouriteCount: number;
   }>;
@@ -171,13 +172,8 @@ export default function AdminInsightsPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
-                            {item.images?.[0] ? (
-                              <Image
-                                src={item.images[0]}
-                                alt={item.name}
-                                fill
-                                className="object-cover"
-                              />
+                            {item.media?.[0] ? (
+                              <MediaPreview media={item.media[0]} itemName={item.name} />
                             ) : (
                               <div className="flex items-center justify-center w-full h-full text-gray-400">
                                 <Heart className="w-5 h-5" />

@@ -1,17 +1,9 @@
-# TODO List - Lemmah Couture Fixes
+# TODO: Modify Item Model for Media Support
 
-## Issue 1: Fix Favourite Not Working (Client Side)
-- [x] Fix `useAnonymousUser` hook to properly initialize user ID
-- [x] Ensure userId is available synchronously from localStorage
-- [x] Add error handling for SSR/localStorage issues
-
-## Issue 2: Change Image Upload to Submit-Time
-- [x] Modify `ItemForm.tsx` to store files locally (not upload immediately)
-- [x] Add image preview using URL.createObjectURL()
-- [x] Update `handleSubmit` to upload images on form submission
-
-## Issue 3: Add Share Button to Admin Items
-- [x] Add Share icon button in admin items table
-- [x] Implement Web Share API with social media fallbacks
-- [x] Create share URL for items
-
+## Tasks
+- [ ] Update Item Model (models/Item.ts): Change images to media with type and url
+- [ ] Update Types (app/types/index.ts): Change images to media
+- [ ] Update Cloudinary Library (lib/cloudinary.ts): Rename uploadImage to uploadMedia, support videos
+- [ ] Update Upload API (app/api/upload/route.ts): Use uploadMedia, return type
+- [ ] Update Item Form (components/ItemForm.tsx): Support videos, update previews
+- [ ] Update Item Page (app/item/[slug]/page.tsx): Display media, show video thumbnail if only videos

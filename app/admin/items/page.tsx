@@ -14,6 +14,7 @@ import {
   Check,
 } from "lucide-react";
 import { ItemProps } from "@/app/types";
+import MediaPreview from "@/components/MediaPreview";
 const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000";
 
 // interface ItemProps {
@@ -270,13 +271,8 @@ export default function AdminItemsPage() {
                     >
                       <td className="px-4 py-3">
                         <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
-                          {item.images?.[0] ? (
-                            <Image
-                              src={item.images[0]}
-                              alt={item.name}
-                              fill
-                              className="object-cover"
-                            />
+                          {item.media?.length ? (
+                            <MediaPreview media={item.media[0]} itemName={item.name} />
                           ) : (
                             <div className="flex items-center justify-center w-full h-full text-gray-400">
                               <ImageIcon className="w-5 h-5" />
@@ -296,7 +292,7 @@ export default function AdminItemsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900 dark:text-white">
-                          ${item.price.toLocaleString()}
+                          ₦ {item.price.toLocaleString()}
                         </p>
                       </td>
                       <td className="px-4 py-3 text-right">

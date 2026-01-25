@@ -30,7 +30,11 @@ export default function AdminCategoriesPage() {
         const data = await response.json();
         // Handle both new format (with _id) and legacy format (just strings)
         if (data.fromCollection && Array.isArray(data.categories)) {
-          setCategories(data.categories);
+          setCategories(data.categories.map((cat: any, ind: number) => ({
+            _id: ind,
+            name: cat,
+            createdAt: new Date().toISOString(),
+          })));
         } else {
           // Legacy format - convert strings to Category objects
           setCategories(data.categories.map((name: string, index: number) => ({

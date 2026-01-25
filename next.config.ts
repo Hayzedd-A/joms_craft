@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // videos: {
+  //   remotePatterns: [
+  //     {
+  //       protocol: 'https',
+  //       hostname: 'res.cloudinary.com',
+  //       pathname: '/**',
+  //     },
+  //   ],
+  // },
 };
 
 export default nextConfig;

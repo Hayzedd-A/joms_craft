@@ -4,7 +4,7 @@ export interface ItemProps {
   description: string;
   slug: string;
   price: number;
-  images: string[];
+  media: { type: 'image' | 'video'; url: string }[];
   category: string;
-  createdAt: string;
+  createdAt: Date;
 }

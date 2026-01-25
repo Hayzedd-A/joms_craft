@@ -75,7 +75,7 @@ export default function AdminDashboard() {
     },
     {
       title: 'Price Range',
-      value: `$${stats.totalRevenue.toLocaleString()}`,
+      value: `₦${stats.totalRevenue.toLocaleString()}`,
       icon: DollarSign,
       color: 'bg-yellow-500',
     },

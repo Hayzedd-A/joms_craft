@@ -8,16 +8,16 @@ cloudinary.config({
 
 export { cloudinary };
 
-export async function uploadImage(file: string) {
+export async function uploadMedia(file: string, type: 'image' | 'video') {
   try {
     const result = await cloudinary.uploader.upload(file, {
       folder: 'catalog-items',
-      resource_type: 'image',
+      resource_type: 'auto',
     });
-    return { success: true, url: result.secure_url, publicId: result.public_id };
+    return { success: true, url: result.secure_url, publicId: result.public_id, type };
   } catch (error) {
     console.error('Cloudinary upload error:', error);
-    return { success: false, error: 'Failed to upload image' };
+    return { success: false, error: 'Failed to upload media' };
   }
 }
 

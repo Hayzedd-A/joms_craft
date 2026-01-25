@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     await connectToDatabase();
     const body = await request.json();
 
-    const { name, description = "all", price, images, category } = body;
+    const { name, description = "all", price, media, category } = body;
 
     if (!name || price === undefined || !category) {
       return NextResponse.json(
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       description: description,
       price,
       slug,
-      images: images || [],
+      media: media || [],
       category,
     });
 

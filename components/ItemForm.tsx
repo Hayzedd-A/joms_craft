@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Upload, X, Plus } from "lucide-react";
+import MediaPreview from "./MediaPreview";
 
 interface ItemFormProps {
   initialData?: {
@@ -10,7 +11,7 @@ interface ItemFormProps {
     name: string;
     description: string;
     price: number;
-    images: string[];
+    media: { type: "image" | "video"; url: string }[];
     category: string;
   };
   categories: string[];
@@ -19,9 +20,10 @@ interface ItemFormProps {
   isLoading?: boolean;
 }
 
-interface ImagePreview {
+interface MediaPreview {
   file: File;
   previewUrl: string;
+  type: "image" | "video";
   isNew: boolean;
 }
 
@@ -37,32 +39,33 @@ export function ItemForm({
     description: initialData?.description || "",
     price: initialData?.price || 0,
     category: initialData?.category || categories[0] || "",
-    images: initialData?.images || [],
+    media: initialData?.media || [],
   });
   const [newCategory, setNewCategory] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [imagePreviews, setImagePreviews] = useState<ImagePreview[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<MediaPreview[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const allCategories = newCategory ? [...categories, newCategory] : categories;
 
-  // Load existing images from initialData into previews
+  // Load existing media from initialData into previews
   useEffect(() => {
-    if (initialData?.images) {
-      const existingPreviews = initialData.images.map((url, index) => ({
+    if (initialData?.media) {
+      const existingPreviews = initialData.media.map((media, index) => ({
         file: new File([], `existing_${index}`),
-        previewUrl: url,
+        previewUrl: media.url,
+        type: media.type,
         isNew: false,
       }));
-      setImagePreviews(existingPreviews);
+      setMediaPreviews(existingPreviews);
     }
   }, [initialData]);
 
   // Cleanup object URLs on unmount
   useEffect(() => {
     return () => {
-      imagePreviews.forEach((preview) => {
+      mediaPreviews.forEach((preview) => {
         if (preview.isNew && preview.previewUrl.startsWith("blob:")) {
           URL.revokeObjectURL(preview.previewUrl);
         }
@@ -75,12 +78,12 @@ export function ItemForm({
     setIsUploading(true);
 
     try {
-      // Upload new images that haven't been uploaded yet
-      let uploadedUrls: string[] = [];
+      // Upload new media that haven't been uploaded yet
+      let uploadedMedia: { url: string; type: "image" | "video" }[] = [];
 
-      console.log("Processing image preview:", imagePreviews);
+      console.log("Processing media preview:", mediaPreviews);
       const uploadFormData = new FormData();
-      for (const preview of imagePreviews)
+      for (const preview of mediaPreviews)
         uploadFormData.append("file", preview.file);
 
       const response = await fetch("/api/upload", {
@@ -89,51 +92,57 @@ export function ItemForm({
       });
 
       if (response.ok) {
-        const { data } = (await response.json()) as { data: { url: string }[] };
-        uploadedUrls = data.map((item) => item.url);
-        console.log("Uploaded image URLs:", uploadedUrls);
+        const { data } = (await response.json()) as {
+          data: { url: string; type: "image" | "video" }[];
+        };
+        uploadedMedia = data;
+        console.log("Uploaded media:", uploadedMedia);
       } else {
-        throw new Error("Failed to upload image");
+        throw new Error("Failed to upload media");
       }
 
       await onSubmit({
         ...formData,
-        images: uploadedUrls,
+        media: uploadedMedia,
         category: newCategory || formData.category || "all",
       });
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert("Failed to upload images. Please try again.");
+      alert("Failed to upload media. Please try again.");
       setIsUploading(false);
     }
   };
 
-  const handleImageSelect = (files: FileList | null) => {
+  const handleMediaSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return;
 
-    const newPreviews: ImagePreview[] = [];
+    const newPreviews: MediaPreview[] = [];
 
     for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) continue;
+      if (!file.type.startsWith("image/") && !file.type.startsWith("video/"))
+        continue;
 
+      const type = file.type.startsWith("video/") ? "video" : "image";
       const previewUrl = URL.createObjectURL(file);
       newPreviews.push({
         file,
         previewUrl,
+        type,
         isNew: true,
       });
     }
 
-    setImagePreviews((prev) => [...prev, ...newPreviews]);
+    setMediaPreviews((prev) => [...prev, ...newPreviews]);
 
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    console.log("Selected media previews:", mediaPreviews);
   };
 
-  const removeImage = (index: number) => {
-    setImagePreviews((prev) => {
+  const removeMedia = (index: number) => {
+    setMediaPreviews((prev) => {
       const newPreviews = prev.filter((_, i) => i !== index);
       // Revoke the object URL to avoid memory leaks
       if (prev[index].isNew && prev[index].previewUrl.startsWith("blob:")) {
@@ -157,7 +166,7 @@ export function ItemForm({
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    handleImageSelect(e.dataTransfer.files);
+    handleMediaSelect(e.dataTransfer.files);
   };
 
   return (
@@ -252,7 +261,7 @@ export function ItemForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Images
+          Media
         </label>
 
         <div
@@ -268,47 +277,45 @@ export function ItemForm({
         >
           <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            Drag and drop images here, or click to select
+            Drag and drop images or videos here, or click to select
           </p>
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             multiple
             ref={fileInputRef}
-            onChange={(e) => handleImageSelect(e.target.files)}
+            onChange={(e) => handleMediaSelect(e.target.files)}
             className="hidden"
-            id="image-upload"
+            id="media-upload"
           />
           <label
-            htmlFor="image-upload"
+            htmlFor="media-upload"
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Select Images
+            Select Media
           </label>
         </div>
 
         {isUploading && (
-          <p className="text-sm text-gray-500 mt-2">Uploading images...</p>
+          <p className="text-sm text-gray-500 mt-2">Uploading media...</p>
         )}
 
-        {imagePreviews.length > 0 && (
+        {mediaPreviews.length > 0 && (
           <div className="grid grid-cols-3 gap-2 mt-4">
-            {imagePreviews.map((preview, index) => (
+            {mediaPreviews.map((preview, index) => (
               <div
                 key={index}
-                className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700"
+                className="relative aspect-square rounded-lg flex overflow-hidden bg-gray-100 dark:bg-gray-700"
               >
-                <Image
-                  src={preview.previewUrl}
-                  alt={`Preview ${index + 1}`}
-                  fill
-                  className="object-cover"
+                <MediaPreview
+                  media={{ type: preview.type, url: preview.previewUrl }}
+                  itemName={formData.name}
                 />
                 <button
                   type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute top-1 right-1 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  onClick={() => removeMedia(index)}
+                  className="absolute top-1 right-1 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -329,14 +336,16 @@ export function ItemForm({
         </button>
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || isUploading}
           className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isLoading
-            ? "Saving..."
-            : initialData?._id
-              ? "Update Item"
-              : "Add Item"}
+          {isUploading
+            ? "Uploading media"
+            : isLoading
+              ? "Saving..."
+              : initialData?._id
+                ? "Update Item"
+                : "Add Item"}
         </button>
       </div>
     </form>

@@ -10,15 +10,16 @@ import {
   ChevronRight,
   DollarSign,
 } from "lucide-react";
-import { IItem } from "./CatalogClient";
+import { ItemProps } from "@/app/types";
+import MediaPreview from "./MediaPreview";
 
 interface ItemModalProps {
-  item: IItem | null;
+  item: ItemProps | null;
   isOpen: boolean;
   isFavourite: boolean;
   onClose: () => void;
   onFavouriteToggle: (itemId: string) => void;
-  onWhatsApp: (item: IItem) => void;
+  onWhatsApp: (item: ItemProps) => void;
 }
 
 export function ItemModal({
@@ -33,15 +34,15 @@ export function ItemModal({
 
   if (!isOpen || !item) return null;
 
-  const images = item.images || [];
-  const hasMultipleImages = images.length > 1;
+  const media = item.media || [];
+  const hasMultipleMedia = media.length > 1;
 
   const goToPrevious = () => {
-    setCurrentImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+    setCurrentImageIndex((prev) => (prev === 0 ? media.length - 1 : prev - 1));
   };
 
   const goToNext = () => {
-    setCurrentImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+    setCurrentImageIndex((prev) => (prev === media.length - 1 ? 0 : prev + 1));
   };
 
   return (
@@ -60,18 +61,14 @@ export function ItemModal({
         </button>
 
         <div className="relative aspect-4/3 bg-gray-100 dark:bg-gray-800">
-          {images.length > 0 ? (
+          {media.length > 0 ? (
             <>
-              <Image
-                src={images[currentImageIndex]}
-                alt={item.name}
-                fill
-                loading="lazy"
-                className="object-cover"
-                sizes="(max-width: 640px) 100vw, 500px"
+              <MediaPreview
+                media={media[currentImageIndex]}
+                itemName={item.name}
               />
 
-              {hasMultipleImages && (
+              {hasMultipleMedia && (
                 <>
                   <button
                     onClick={goToPrevious}
@@ -87,7 +84,7 @@ export function ItemModal({
                   </button>
 
                   <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {images.map((_, index) => (
+                    {media.map((_, index) => (
                       <button
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}

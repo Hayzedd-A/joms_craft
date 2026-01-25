@@ -2,14 +2,16 @@
 
 import Image from 'next/image';
 import { Heart, MessageCircle, DollarSign } from 'lucide-react';
-import { IItem } from './CatalogClient';
+import { ItemProps } from '@/app/types';
+import MediaPreview from './MediaPreview';
+const placeholderImage = 'https://res.cloudinary.com/dchucv6ut/image/upload/v1769350752/catalog-items/mbwb1hff7cludheemnoz.png';
 
 interface ItemCardProps {
-  item: IItem;
+  item: ItemProps;
   isFavourite: boolean;
   onFavouriteToggle: (itemId: string) => void;
-  onWhatsApp: (item: IItem) => void;
-  onClick: (item: IItem) => void;
+  onWhatsApp: (item: ItemProps) => void;
+  onClick: (item: ItemProps) => void;
 }
 
 export function ItemCard({ 
@@ -19,7 +21,7 @@ export function ItemCard({
   onWhatsApp,
   onClick 
 }: ItemCardProps) {
-  const imageUrl = item.images?.[0] || '/placeholder.jpg';
+  const imageUrl = item.media.find(med => med.type === "image")?.url || placeholderImage;
 
   return (
     <article 
@@ -28,14 +30,7 @@ export function ItemCard({
     >
       <div className="relative aspect-square bg-gray-100 dark:bg-gray-700">
         {imageUrl ? (
-          <Image
-            loading='lazy'
-            src={imageUrl}
-            alt={item.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          />
+          <MediaPreview media={{type: "image", url: imageUrl}} itemName={item.name} />
         ) : (
           <div className="flex items-center justify-center w-full h-full text-gray-400">
             No image

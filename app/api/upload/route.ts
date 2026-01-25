@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadImage } from "@/lib/cloudinary";
+import { uploadMedia } from "@/lib/cloudinary";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,9 +19,13 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await Promise.all(
-      base64Array.map((base64) => uploadImage(base64)),
+      base64Array.map((base64, index) => {
+        const file = files[index];
+        const type = file.type.startsWith('video/') ? 'video' : 'image';
+        return uploadMedia(base64, type);
+      }),
     );
-    Urls = result.filter(res => res.success).map((url) => ({url: url.url}));
+    Urls = result.filter(res => res.success).map((res) => ({ url: res.url, type: res.type }));
 
     return NextResponse.json({ data: Urls }, { status: 200 });
   } catch (error) {
