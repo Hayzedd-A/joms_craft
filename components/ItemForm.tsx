@@ -221,11 +221,12 @@ export function ItemForm({
             type="string"
             value={formPrice}
             onChange={(e) => {
-              const valid = !isNaN(parseFloat(e.target.value));
+              const value = e.target.value.replaceAll(",", "")
+              const valid = !isNaN(parseFloat(value))
               setFormPrice(() =>
                 valid
                   ? (parseFloat(
-                      e.target.value,
+                      value,
                     ).toLocaleString() as unknown as string)
                   : "0",
               );
