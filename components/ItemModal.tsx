@@ -121,7 +121,7 @@ export function ItemModal({
             {item.price.toLocaleString()}
           </p>
 
-          <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+          <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
             {item.description}
           </p>
         </div>

@@ -87,35 +87,50 @@ export function ItemForm({
           ? parseFloat(formPrice.toString().replace(/,/g, ""))
           : 0,
       };
-      // Upload new media that haven't been uploaded yet
-      let uploadedMedia: { url: string; type: "image" | "video" }[] = [];
+      // Separate new media that needs uploading from existing media
+      const newMediaToUpload = mediaPreviews.filter((p) => p.isNew);
 
-      console.log("Processing media preview:", mediaPreviews);
       if (mediaPreviews.length === 0) {
         throw new Error("Please add at least one image or video.");
       }
-      const uploadFormData = new FormData();
-      for (const preview of mediaPreviews)
-        uploadFormData.append("file", preview.file);
 
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: uploadFormData,
-      });
+      let uploadedMediaUrls: { url: string; type: "image" | "video" }[] = [];
 
-      if (response.ok) {
-        const { data } = (await response.json()) as {
-          data: { url: string; type: "image" | "video" }[];
-        };
-        uploadedMedia = data;
-        console.log("Uploaded media:", uploadedMedia);
-      } else {
-        throw new Error("Failed to upload media");
+      if (newMediaToUpload.length > 0) {
+        const uploadFormData = new FormData();
+        newMediaToUpload.forEach((preview) => {
+          uploadFormData.append("file", preview.file);
+        });
+
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: uploadFormData,
+        });
+
+        if (response.ok) {
+          const { data } = (await response.json()) as {
+            data: { url: string; type: "image" | "video" }[];
+          };
+          uploadedMediaUrls = data;
+          console.log("Uploaded new media:", uploadedMediaUrls);
+        } else {
+          throw new Error("Failed to upload new media");
+        }
       }
+
+      // Merge uploaded media with existing media, preserving order
+      let uploadIdx = 0;
+      const finalMedia = mediaPreviews.map((preview) => {
+        if (preview.isNew) {
+          return uploadedMediaUrls[uploadIdx++];
+        } else {
+          return { url: preview.previewUrl, type: preview.type };
+        }
+      });
 
       await onSubmit({
         ...newFormData,
-        media: uploadedMedia,
+        media: finalMedia,
         category: newCategory || formData.category || "all",
       });
     } catch (error: any) {
@@ -221,13 +236,11 @@ export function ItemForm({
             type="string"
             value={formPrice}
             onChange={(e) => {
-              const value = e.target.value.replaceAll(",", "")
-              const valid = !isNaN(parseFloat(value))
+              const value = e.target.value.replaceAll(",", "");
+              const valid = !isNaN(parseFloat(value));
               setFormPrice(() =>
                 valid
-                  ? (parseFloat(
-                      value,
-                    ).toLocaleString() as unknown as string)
+                  ? (parseFloat(value).toLocaleString() as unknown as string)
                   : "0",
               );
             }}
